@@ -1,0 +1,38 @@
+﻿apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-test
+  namespace: default
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: nginx
+      image: nginx/nginx-unprivileged:stable
+      ports:
+        - containerPort: 8080
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        seccompProfile:
+          type: RuntimeDefault
+      startupProbe:
+        httpGet:
+          path: /
+          port: 8080
+        periodSeconds: 2
+        failureThreshold: 30
+      livenessProbe:
+        httpGet:
+          path: /deliberately-missing-health-check
+          port: 8080
+        periodSeconds: 5
+        failureThreshold: 3

@@ -1,0 +1,68 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: first-website
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: first-website
+  template:
+    metadata:
+      labels:
+        app: first-website
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: nginx
+          image: nginx/nginx-unprivileged:stable
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: first-website
+  namespace: default
+spec:
+  selector:
+    app: first-website
+  ports:
+    - port: 80
+      targetPort: http
